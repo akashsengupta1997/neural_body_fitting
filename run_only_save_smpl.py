@@ -18,7 +18,6 @@ import tensorflow as tf
 from tensorflow.python.client import timeline
 import tqdm
 
-
 from clustertools.log import LOGFORMAT
 
 LOGGER = logging.getLogger(__name__)
@@ -46,14 +45,16 @@ def create_restoration_saver(ckpt_path, cur_graph, name='restore', silent=True):
                 'Specified checkpoint has no variables in common with the current model.'
             )
         # determine which variables from checkpoint will be ignored
-        ignored_var_names = [v[0] for v in list(set(rest_vars).symmetric_difference(set(ckpt_vars)))]
+        ignored_var_names = [v[0] for v in
+                             list(set(rest_vars).symmetric_difference(set(ckpt_vars)))]
         if not silent:
             for vn in ignored_var_names:
                 LOGGER.warn(
                     "Variable `%s` found in specified checkpoint will be ignored!",
                     vn)
             # determine which variables won't be restored from checkpoint
-            nonrest_var_names = [v[0] for v in list(set(rest_vars).symmetric_difference(set(graph_vars)))]
+            nonrest_var_names = [v[0] for v in
+                                 list(set(rest_vars).symmetric_difference(set(graph_vars)))]
             for vn in nonrest_var_names:
                 LOGGER.warn("Variable `%s` not found in specified checkpoint!", vn)
         rest_saver = tf.train.Saver(
@@ -142,7 +143,7 @@ def cli(**args):
         ), "'--out_fp' option required for 'infer_(segment_)fit' modes"
         assert os.path.exists(
             args['inp_fp']), "Specified input dir: '%s' doesn't exist" % (
-                args['inp_fp'])
+            args['inp_fp'])
         output_fp = args['out_fp']
         if not os.path.exists(output_fp):
             os.makedirs(output_fp)
@@ -155,8 +156,8 @@ def cli(**args):
     # check that mode is valid
     mode = args['mode']
     assert mode in exp_config["supp_modes"], (
-        "Unsupported mode by this model: %s, available: %s." %
-        (mode, str(exp_config["supp_modes"])))
+            "Unsupported mode by this model: %s, available: %s." %
+            (mode, str(exp_config["supp_modes"])))
     LOGGER.info("Running mode `%s` for experiment `%s`.", mode, exp_name)
     # make adjustments to config based on command line parameters
     exp_config = exp_config_mod.adjust_config(exp_config_mod.get_config(),
@@ -170,7 +171,7 @@ def cli(**args):
         exp_config.update(custom_options)
     exp_config['num_threads'] = args["num_threads"]
     exp_config['ignore_batchnorm_training_stats'] = (
-        args['ignore_batchnorm_stats'] is not None)
+            args['ignore_batchnorm_stats'] is not None)
     exp_config['inp_fp'] = args['inp_fp']
     exp_config['out_fp'] = args['out_fp']
     # print all options
@@ -217,12 +218,12 @@ def cli(**args):
     #### SETUP MODEL AND LOSS OPS ####
     # Checkpointing.
     # Build model.
-    #TODO should be handled in preprocessor
+    # TODO should be handled in preprocessor
     if mode in ['infer_segment_fit']:
         model_input = examples.crop
     else:
         model_input = examples.intermediate_rep
-    
+
     model_mod = imp.load_source('_model', os.path.join(exp_name, 'model.py'))
     model = model_mod.Model(
         exp_config,
@@ -269,7 +270,7 @@ def cli(**args):
         seg_rest_saver = create_restoration_saver(exp_config['seg_model'],
                                                   tf.get_default_graph(),
                                                   name='seg_restore')
-                                 
+
     if mode not in ['train', 'trainval'] and rest_saver is None:
         raise Exception("The mode %s requires a checkpoint!" % (mode))
 
@@ -315,8 +316,9 @@ def cli(**args):
             elif exp_config["max_steps"] is not None:
                 max_steps = exp_config["max_steps"]
                 total_examples_presented = (
-                    max_steps // steps_per_epoch) * nsamples + (
-                        max_steps % steps_per_epoch) * exp_config["batch_size"]
+                                                   max_steps // steps_per_epoch) * nsamples + (
+                                                   max_steps % steps_per_epoch) * exp_config[
+                                               "batch_size"]
             else:
                 raise ValueError(
                     "You need to specify either a maximum nr. of epochs or steps."
@@ -332,7 +334,7 @@ def cli(**args):
                     for s in range(nr_steps - 1)
                 ]
                 exp_config["lr_steps"] = [
-                    exp_config["lr"] * exp_config["lr_mult"]**s
+                    exp_config["lr"] * exp_config["lr_mult"] ** s
                     for s in range(nr_steps)
                 ]
 
@@ -362,7 +364,7 @@ def cli(**args):
             seg_rest_saver.restore(sess, exp_config['seg_model'])
         if rest_saver is not None:
             rest_saver.restore(sess, checkpoint)
-            
+
         # Get initial step
         fetches = {}
         fetches["global_step"] = global_step
@@ -409,6 +411,19 @@ def cli(**args):
                 try:
                     display_fetches['paths'] = examples.path
                     results = sess.run(display_fetches)
+                    # results is dict with keys: paths, latent, intermediate_rep, joints3d_pred, input, joints2d_pred
+                    print(results['paths'])
+                    print(results['latent'])
+                    print(results['intermediate_rep'])
+                    print(results['joints3d_pred'])
+                    print(results['input'])
+                    print(results['joints2d_pred'])
+                    print(results['paths'].shape)
+                    print(results['latent'].shape)
+                    print(results['intermediate_rep'].shape)
+                    print(results['joints3d_pred'].shape)
+                    print(results['input'].shape)
+                    print(results['joints2d_pred'].shape, '\n\n')
                     if not args['no_output']:
                         if mode == 'eval_train':
                             index_fp = out_mod.save_images(
@@ -505,9 +520,9 @@ def cli(**args):
                     def should(freq, epochs=False):
                         if epochs:
                             return freq > 0 and (
-                                (epoch + 1) % freq == 0 and
-                                (step + 1) % steps_per_epoch == 0
-                                or step == max_steps - 1)
+                                    (epoch + 1) % freq == 0 and
+                                    (step + 1) % steps_per_epoch == 0
+                                    or step == max_steps - 1)
                         else:
                             return freq > 0 and ((step + 1) % freq == 0
                                                  or step == max_steps - 1)
