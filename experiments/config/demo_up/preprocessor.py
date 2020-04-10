@@ -53,36 +53,36 @@ class Preprocessor():
         self.part_colours = np.squeeze(sm.imread(config['colour_map']))
         self.input_type = config['input_type']
         assert self.input_type in ['image', 'partmap', 'jointmap'], 'Unknown input type: %s' % (self.input_type)
-        
+
         self.buffer_size = 768
         self.num_threads = 16
-        
+
         self.latent_mean = latent_mean
         self.latent_std = latent_std
 
         self.data_list = self.get_data_list(config, load_files_from_npz=load_files_from_npz)
-        self.data_list_ph = tf.placeholder(tf.string, 
+        self.data_list_ph = tf.placeholder(tf.string,
                                            shape=[len(self.data_list), len(self.data_list[0][0])])
         read_png = lambda x: tf.image.decode_png(tf.read_file(x))[:,:,:3]
         read_bin = lambda x: tf.decode_raw(tf.read_file(x), tf.float64)
         if self.mode in ['infer_segment_fit']:
             read_func = lambda x: DataRawInfer(
-                                    path=x[0],
-                                    crop=read_png(x[1]),
-                                    intermediate_rep=tf.zeros((self.interm_size, self.interm_size, 3)))
+                path=x[0],
+                crop=read_png(x[1]),
+                intermediate_rep=tf.zeros((self.interm_size, self.interm_size, 3)))
         elif self.mode in ['infer_fit']:
             read_func = lambda x: DataRawInfer(
-                                    path=x[0],
-                                    crop=tf.zeros((self.input_size, self.input_size, 3)),
-                                    intermediate_rep=read_png(x[2]))
+                path=x[0],
+                crop=tf.zeros((self.input_size, self.input_size, 3)),
+                intermediate_rep=read_png(x[2]))
         else:
             read_func = lambda x: DataRaw(
-                                    path=x[0],
-                                    crop=tf.zeros((self.input_size, self.input_size, 3)),
-                                    intermediate_rep=read_png(x[2]),
-                                    smplparams=read_bin(x[3]),
-                                    joints=read_bin(x[4]),
-                                    latent_flag=x[5])
+                path=x[0],
+                crop=tf.zeros((self.input_size, self.input_size, 3)),
+                intermediate_rep=read_png(x[2]),
+                smplparams=read_bin(x[3]),
+                joints=read_bin(x[4]),
+                latent_flag=x[5])
 
         dataset = tf.data.Dataset.from_tensor_slices(self.data_list_ph)
         dataset = dataset.map(read_func)
@@ -95,23 +95,23 @@ class Preprocessor():
         self.iter_init = self.iterator.make_initializer(self.dataset)
 
         return
-    
+
     def get_batching_op(self):
         return self.next_batch
-        
+
     def initialise_iterator(self, session, shuffle=True):
-        
+
         if shuffle:
             random.shuffle(self.data_list)
-        
+
         session.run(self.iter_init, feed_dict={self.data_list_ph: [random.choice(dl) for dl in self.data_list]})
-        return 
-   
+        return
+
     def get_next_batch(self, session):
-        
+
         batch = session.run(self.next_batch)
         return batch
-        
+
     def get_jointmap(self, joints):
         img = np.zeros((self.interm_size, self.interm_size, 3))
         joints = np.reshape(joints[72+self.num_joints*3:], (self.num_joints, 2))
@@ -119,7 +119,7 @@ class Preprocessor():
             rr, cc = skdraw.circle(joints[i,0], joints[i,1], 3, shape=(self.interm_size, self.interm_size))
             for j in range(3):
                 img[cc, rr, j] = self.part_colours[i,j]
-        
+
         return img
 
     def get_data_list(self, config, load_files_from_npz=False):
@@ -134,12 +134,12 @@ class Preprocessor():
             dset_dir = config['dset_dir']
             dset_list = config[
                 'train_list'] if mode == 'eval_train' else config['%s_list' %
-                                                                      (mode)]
+                                                                  (mode)]
             assert os.path.exists(
                 dset_list), "Given list doesn't exist: %s" % (dset_list)
             with open(dset_list, 'r') as f:
                 fids = f.read().split('\n')
-                fids = [fid.split(' ') for fid in fids]                
+                fids = [fid.split(' ') for fid in fids]
 
             if 'num_landmarks' in config.keys(
             ) and config['num_landmarks'] in [14, 91]:
@@ -148,13 +148,13 @@ class Preprocessor():
                 joints_type = 'joints'
 
             data_list = []
-  
+
             if mode in ['eval_train', 'val', 'test']:
-                f_grps = [[f] for f in fids]  
+                f_grps = [[f] for f in fids]
             elif mode in ['train', 'trainval']:
                 fnames = []
                 f_grps = []
-                
+
                 for root, dirnames, filenames in os.walk(
                         os.path.join(dset_dir, 'images')):
                     for filename in filenames:
@@ -168,7 +168,7 @@ class Preprocessor():
 
                 f_ctr = 0
                 for fid in tqdm.tqdm(fids):
-                    assert np.any([(fid[0] in fname) for fname in fnames[f_ctr:]]),\
+                    assert np.any([(fid[0] in fname) for fname in fnames[f_ctr:]]), \
                         'No files found in specified folder (%s) corresponding to id: %s' % (dset_dir, fid[0])
                     f_grp = []
                     while f_ctr < len(fnames):
@@ -182,8 +182,8 @@ class Preprocessor():
                             else:
                                 break
                     if len(f_grp) > 0:
-                        f_grps.append(f_grp)   
-           
+                        f_grps.append(f_grp)
+
             for f_grp in f_grps:
                 data_list.append([(f[0],
                                    os.path.join(dset_dir, 'images',
@@ -195,32 +195,34 @@ class Preprocessor():
                                    os.path.join(dset_dir, 'joints',
                                                 f[0] + '_' + joints_type + '.bin'),
                                    str(f[1])) for f in f_grp])
-        
+
         elif mode in ['infer_fit', 'infer_segment_fit']:
             if load_files_from_npz:
                 data = np.load(config['inp_fp'])
                 inp_files = data['frames_paths']
                 inp_files = [x.replace('/scratch2/', '/scratch/') for x in inp_files]
+                fids = [os.path.basename(ifl).split('.png')[0] for ifl in inp_files]
+                data_list = list(zip(fids, inp_files))
             else:
                 inp_files = sorted(glob.glob(os.path.join(config['inp_fp'], '*.png')))
-            fids = [os.path.basename(ifl).split('.png')[0] for ifl in inp_files]
-            data_list = [[(f,
-                           os.path.join(config['inp_fp'], f + '.png'))]
-                         for f in fids]
+                fids = [os.path.basename(ifl).split('.png')[0] for ifl in inp_files]
+                data_list = [[(f,
+                               os.path.join(config['inp_fp'], f + '.png'))]
+                             for f in fids]
         return data_list
-        
+
     def get_num_samples(self):
         assert self.data_list is not None, "data_list not yet set"
         return len(self.data_list)
 
     def transform_data(self, data_raw):
-        
+
         path = data_raw.path
-        
+
         #TODO: fix this
         crop = tf.cast(data_raw.crop, tf.float32) - _IMAGENET_MEAN
         crop.set_shape((self.input_size, self.input_size, 3))
-        
+
         #TODO: if self.input_type is image and mode set to infer_segment_fit -> where do we pass image through?
         intermediate_rep = data_raw.intermediate_rep
         if self.mode not in ['infer_segment_fit']:
@@ -229,17 +231,17 @@ class Preprocessor():
                 if self.input_type == 'image':
                     intermediate_rep = data_raw.crop
 
-                intermediate_rep = tf.cond(tf.equal(tf.shape(intermediate_rep)[0], self.interm_size), 
-                                  true_fn=lambda: intermediate_rep,
-                                  false_fn= lambda: tf.image.resize_images(intermediate_rep, [self.interm_size, self.interm_size], 
-                                                                           method=tf.image.ResizeMethod.NEAREST_NEIGHBOR))
+                intermediate_rep = tf.cond(tf.equal(tf.shape(intermediate_rep)[0], self.interm_size),
+                                           true_fn=lambda: intermediate_rep,
+                                           false_fn= lambda: tf.image.resize_images(intermediate_rep, [self.interm_size, self.interm_size],
+                                                                                    method=tf.image.ResizeMethod.NEAREST_NEIGHBOR))
             elif self.input_type in ['jointmap']:
                 intermediate_rep = tf.py_func(self.get_jointmap, [data_raw.joints], tf.float64)
-            
+
             intermediate_rep = tf.cast(intermediate_rep, tf.float32)
             intermediate_rep = intermediate_rep * 2. / 255. - 1.
             intermediate_rep.set_shape((self.interm_size, self.interm_size, 3))
-        
+
         smplparams = tf.zeros((self.smplparam_len,))
         smplparams_full = tf.zeros((self.smplparam_len_full,))
         smplparams_orig = tf.zeros((85,))
@@ -247,7 +249,7 @@ class Preprocessor():
         joint_locations_posed = tf.zeros((self.num_joints,3))
         joint_locations_projected = tf.zeros((self.num_joints,2))
         latent_flag = tf.zeros((1,))
-        
+
         if 'infer' not in self.mode:
             # SMPLPARAMS (TO PREDICT)
             smplparams = data_raw.smplparams
@@ -259,7 +261,7 @@ class Preprocessor():
             smplparams_trans_xy = smplparams[82:84]
             smplparams_trans_z = smplparams[84:]
             # convert pose from aar to rotation matrices
-            aar_convert = lambda i: conversions.aar_to_rotmat(i, self.kintree) 
+            aar_convert = lambda i: conversions.aar_to_rotmat(i, self.kintree)
             smplparams_pose = tf.py_func(aar_convert, [smplparams_pose], tf.float64)
             # join the parameters
             smplparams = tf.zeros([0,], dtype=tf.float64)
@@ -281,7 +283,7 @@ class Preprocessor():
             smplparams_full = tf.cast(tf.concat([smplparams_shape, smplparams_pose, smplparams_trans_xy, smplparams_trans_z], 0), tf.float32)
             smplparams_full = tf.reshape(smplparams_full, tf.convert_to_tensor((self.smplparam_len_full,), dtype=tf.int32))
             smplparams_full = tf.cast(smplparams_full, tf.float32)
-            
+
             # JOINTS
             joints = data_raw.joints
             joint_locations_betas = tf.reshape(joints[:72], (24, 3))
@@ -290,7 +292,7 @@ class Preprocessor():
             joint_locations_posed = tf.cast(joint_locations_posed, tf.float32)
             joint_locations_projected = tf.reshape(joints[72+self.num_joints*3:], (self.num_joints, 2))
             joint_locations_projected = tf.cast(joint_locations_projected, tf.float32)
-            
+
             # LATENT FLAG
             latent_flag = data_raw.latent_flag
             latent_flag = tf.string_to_number(latent_flag, out_type=tf.int32)
