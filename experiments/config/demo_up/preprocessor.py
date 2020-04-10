@@ -36,7 +36,7 @@ _IMAGENET_MEAN = np.array([122.67892, 116.66877, 104.00699])
 
 class Preprocessor():
 
-    def __init__(self, config, mode, latent_mean=None, latent_std=None):
+    def __init__(self, config, mode, latent_mean=None, latent_std=None, load_files_from_npz=False):
 
         self.mode = mode
 
@@ -60,7 +60,7 @@ class Preprocessor():
         self.latent_mean = latent_mean
         self.latent_std = latent_std
 
-        self.data_list = self.get_data_list(config)
+        self.data_list = self.get_data_list(config, load_files_from_npz=load_files_from_npz)
         self.data_list_ph = tf.placeholder(tf.string, 
                                            shape=[len(self.data_list), len(self.data_list[0][0])])
         read_png = lambda x: tf.image.decode_png(tf.read_file(x))[:,:,:3]
@@ -122,7 +122,7 @@ class Preprocessor():
         
         return img
 
-    def get_data_list(self, config):
+    def get_data_list(self, config, load_files_from_npz=False):
 
         mode = config['mode']
         # TODO: remove var and if block
@@ -197,9 +197,14 @@ class Preprocessor():
                                    str(f[1])) for f in f_grp])
         
         elif mode in ['infer_fit', 'infer_segment_fit']:
-            inp_files = sorted(glob.glob(os.path.join(config['inp_fp'], '*.png')))
+            if load_files_from_npz:
+                data = np.load(config['inp_fp'])
+                inp_files = data['frames_paths']
+                inp_files = [x.replace('/scratch2/', '/scratch/') for x in inp_files]
+            else:
+                inp_files = sorted(glob.glob(os.path.join(config['inp_fp'], '*.png')))
             fids = [os.path.basename(ifl).split('.png')[0] for ifl in inp_files]
-            data_list = [[(f, 
+            data_list = [[(f,
                            os.path.join(config['inp_fp'], f + '.png'))]
                          for f in fids]
         return data_list
