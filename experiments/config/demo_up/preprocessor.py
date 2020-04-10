@@ -203,7 +203,7 @@ class Preprocessor():
                 # Hacking for sports videos dataset eval
                 inp_files = [x.replace('/scratch2/', '/scratch/') for x in inp_files]
                 fids = [os.path.basename(ifl).split('.png')[0] for ifl in inp_files]
-                data_list = [list(zip(fids, inp_files))]
+                data_list = [[(fids[i], inp_files[i])] for i in range(len(inp_files))]
                 print(len(data_list), len(data_list[0]))
             else:
                 inp_files = sorted(glob.glob(os.path.join(config['inp_fp'], '*.png')))
