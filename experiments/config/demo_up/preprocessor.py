@@ -200,15 +200,18 @@ class Preprocessor():
             if load_files_from_npz:
                 data = np.load(config['inp_fp'])
                 inp_files = data['frames_paths']
+                # Hacking for sports videos dataset eval
                 inp_files = [x.replace('/scratch2/', '/scratch/') for x in inp_files]
                 fids = [os.path.basename(ifl).split('.png')[0] for ifl in inp_files]
                 data_list = list(zip(fids, inp_files))
+                print(data_list)
             else:
                 inp_files = sorted(glob.glob(os.path.join(config['inp_fp'], '*.png')))
                 fids = [os.path.basename(ifl).split('.png')[0] for ifl in inp_files]
                 data_list = [[(f,
                                os.path.join(config['inp_fp'], f + '.png'))]
                              for f in fids]
+                print(data_list)
         return data_list
 
     def get_num_samples(self):
