@@ -19,8 +19,48 @@ from tensorflow.python.client import timeline
 import tqdm
 
 from clustertools.log import LOGFORMAT
+from utils import conversions
 
 LOGGER = logging.getLogger(__name__)
+
+
+def get_body_dict(preds, target, latent_mean, config=None, kintree=None):
+    #TODO: this should happen elsewhere ('latent_components', 'target' and even 'latent_mean' shouldn't be required!)
+    preds = preds + latent_mean
+    preds_full = np.zeros((config['nz_full'],))
+    if 'latent_components' in config.keys():
+        if target is not None:
+            preds_full = target
+        if 'shape' in config['latent_components']:
+            preds_full[:10] = preds[:10]
+        if 'pose' in config['latent_components']:
+            if 'shape' in config['latent_components']:
+                preds_full[10:226] = preds[10:226]
+            else:
+                preds_full[10:226] = preds
+        if 'trans' in config['latent_components']:
+            if 'shape' in config['latent_components']:
+                preds_full[226:228] = preds[226:]
+            else:
+                preds_full[226:228] = preds[216:]
+        else:
+            preds_full[226:] = [-0.01, 0.115, 20.3]
+    else:
+        preds_full = preds
+
+    pose_vector = preds_full[10:226]
+
+    # undo mean/var compensation
+    out_pkl = {}
+    out_pkl['rt'] = np.array([ 0.,  0.,  0.])
+    out_pkl['t'] = np.array([ 0.,  0.,  0.])
+    out_pkl['f'] = 5000.0
+
+    out_pkl['pose'] = conversions.rotmat_to_aar(pose_vector, kintree)
+    out_pkl['betas'] = preds_full[:10]
+    out_pkl['trans'] = preds_full[226:]
+
+    return out_pkl
 
 
 def create_restoration_saver(ckpt_path, cur_graph, name='restore', silent=True):
@@ -406,24 +446,34 @@ def cli(**args):
             display_fetches.update(test_fetches)
             b_id = 0
             preprocessor.initialise_iterator(sess, shuffle=False)
+            all_paths = []
             pbar = tqdm.tqdm(total=nsamples)
+            kintree = None
+            if exp_config['use_absrot']:
+                kintree = conversions.prepare_kintree()
             while True:
                 try:
                     display_fetches['paths'] = examples.path
                     results = sess.run(display_fetches)
                     # results is dict with keys: paths, latent, intermediate_rep, joints3d_pred, input, joints2d_pred
-                    print(results['paths'])
-                    print(results['latent'])
-                    print(results['intermediate_rep'])
-                    print(results['joints3d_pred'])
-                    print(results['input'])
-                    print(results['joints2d_pred'])
-                    print(results['paths'].shape)
-                    print(results['latent'].shape)
-                    print(results['intermediate_rep'].shape)
-                    print(results['joints3d_pred'].shape)
-                    print(results['input'].shape)
-                    print(results['joints2d_pred'].shape, '\n\n')
+                    # paths: (bsize, ) - file name for input images in batch
+                    # latent: (bs, 226) - SMPL parameters - 24 3x3 rotation matrices and 10 shape parameters
+                    # Where are camera parameters? NBF assumes fixed camera - not predicted by network
+                    # cam_R = I and cam_t = [-1.00e-02  1.15e-01  2.03e+01]
+                    print results['paths']
+                    print results['latent']
+                    print results['paths'].shape
+                    print results['latent'].shape
+                    print '\n\n'
+
+                    for idx in range(len(results['paths'])):
+                        out_params = get_body_dict(results['latent'][idx],
+                                                   None,
+                                                   latent_mean,
+                                                   exp_config,
+                                                   kintree)
+                        print(out_params.keys())
+
                     if not args['no_output']:
                         if mode == 'eval_train':
                             index_fp = out_mod.save_images(
@@ -599,6 +649,8 @@ def cli(**args):
             pbar.close()
         LOGGER.info("Shutting down...")
     LOGGER.info("Done.")
+
+
 
 
 if __name__ == '__main__':

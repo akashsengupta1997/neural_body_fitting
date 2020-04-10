@@ -33,7 +33,7 @@ config = {
     "loss_terms": {"model_parameters": ("mabserr", 1.0), "joint_locations_projected": ("euclidist", 1.0)},
     "max_epochs": 75,
     "max_steps": None,
-    "batch_size": 5,
+    "batch_size": 32,
     "lr": 0.00004,  # Adam lr.
     "lr_policy": "poly",
     "optimizer": "adam",
