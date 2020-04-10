@@ -203,15 +203,15 @@ class Preprocessor():
                 # Hacking for sports videos dataset eval
                 inp_files = [x.replace('/scratch2/', '/scratch/') for x in inp_files]
                 fids = [os.path.basename(ifl).split('.png')[0] for ifl in inp_files]
-                data_list = list(zip(fids, inp_files))
-                print(data_list)
+                data_list = [list(zip(fids, inp_files))]
+                print(len(data_list), len(data_list)[0])
             else:
                 inp_files = sorted(glob.glob(os.path.join(config['inp_fp'], '*.png')))
                 fids = [os.path.basename(ifl).split('.png')[0] for ifl in inp_files]
                 data_list = [[(f,
                                os.path.join(config['inp_fp'], f + '.png'))]
                              for f in fids]
-                print(data_list)
+                print(len(data_list), len(data_list[0]))
         return data_list
 
     def get_num_samples(self):
