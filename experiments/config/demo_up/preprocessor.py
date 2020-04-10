@@ -204,7 +204,7 @@ class Preprocessor():
                 inp_files = [x.replace('/scratch2/', '/scratch/') for x in inp_files]
                 fids = [os.path.basename(ifl).split('.png')[0] for ifl in inp_files]
                 data_list = [list(zip(fids, inp_files))]
-                print(len(data_list), len(data_list)[0])
+                print(len(data_list), len(data_list[0]))
             else:
                 inp_files = sorted(glob.glob(os.path.join(config['inp_fp'], '*.png')))
                 fids = [os.path.basename(ifl).split('.png')[0] for ifl in inp_files]
