@@ -112,3 +112,15 @@ venv.bak/
 
 # PyCharm
 .idea/
+
+# Demo
+demo/up/output/images
+
+# SMPL
+external/smpl/
+
+# DS_Store
+*.DS_Store
+
+# Segmenter
+models/segmentation/

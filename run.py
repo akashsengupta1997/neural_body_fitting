@@ -409,6 +409,7 @@ def cli(**args):
                 try:
                     display_fetches['paths'] = examples.path
                     results = sess.run(display_fetches)
+                    print(results)
                     if not args['no_output']:
                         if mode == 'eval_train':
                             index_fp = out_mod.save_images(
