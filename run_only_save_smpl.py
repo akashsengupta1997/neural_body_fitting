@@ -467,7 +467,7 @@ def cli(**args):
                     # print results['paths'].shape
                     # print results['latent'].shape
                     # print '\n\n'
-
+                    fname_per_frame.append(results['paths'])
                     for idx in range(len(results['paths'])):
                         out_params = get_body_dict(results['latent'][idx],
                                                    None,
@@ -477,8 +477,7 @@ def cli(**args):
                         print(out_params.keys())
                         print(results['paths'].shape)
                         print(out_params['pose'].shape)
-                        print(out_params['shape'].shape)
-                        fname_per_frame.append(results['paths'])
+                        print(out_params['betas'].shape)
                         pose_per_frame.append(out_params['pose'])
                         shape_per_frame.append(out_params['betas'])
 
