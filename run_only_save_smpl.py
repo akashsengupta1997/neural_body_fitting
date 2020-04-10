@@ -453,8 +453,8 @@ def cli(**args):
             kintree = None
             if exp_config['use_absrot']:
                 kintree = conversions.prepare_kintree()
-            i = 0
-            while True and i < 20:
+
+            while True:
                 try:
                     display_fetches['paths'] = examples.path
                     results = sess.run(display_fetches)
@@ -480,12 +480,11 @@ def cli(**args):
                         # print(out_params['betas'].shape)
                         pose_per_frame.append(out_params['pose'])
                         shape_per_frame.append(out_params['betas'])
-
+                    pbar.update(len(results['paths']))
                 except tf.errors.OutOfRangeError:
                     LOGGER.info("Finished processing the validation/test set")
                     pbar.close()
                     break
-                i += 1
             pbar.close()
             fname_per_frame = np.concatenate(fname_per_frame, axis=0)
             pose_per_frame = np.stack(pose_per_frame, axis=0)
