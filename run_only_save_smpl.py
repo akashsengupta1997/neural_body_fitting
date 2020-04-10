@@ -453,7 +453,8 @@ def cli(**args):
             kintree = None
             if exp_config['use_absrot']:
                 kintree = conversions.prepare_kintree()
-            while True:
+            i = 0
+            while True and i < 20:
                 try:
                     display_fetches['paths'] = examples.path
                     results = sess.run(display_fetches)
@@ -474,10 +475,9 @@ def cli(**args):
                                                    latent_mean,
                                                    exp_config,
                                                    kintree)
-                        print(out_params.keys())
-                        print(results['paths'].shape)
-                        print(out_params['pose'].shape)
-                        print(out_params['betas'].shape)
+                        # print(out_params.keys())
+                        # print(out_params['pose'].shape)
+                        # print(out_params['betas'].shape)
                         pose_per_frame.append(out_params['pose'])
                         shape_per_frame.append(out_params['betas'])
 
@@ -485,136 +485,19 @@ def cli(**args):
                     LOGGER.info("Finished processing the validation/test set")
                     pbar.close()
                     break
-        #     LOGGER.info("Results:")
-        #     feed_results = dict()
-        #     for key in sorted(test_fetches.keys()):
-        #         # av_results[key + '_full'] = av_results[key]
-        #         av_results[key] = np.mean(av_results[key])
-        #         feed_results[av_placeholders[key]] = av_results[key]
-        #         LOGGER.info("  %s: %s", key, av_results[key])
-        #     if shutdown_requested[0]:
-        #         LOGGER.warn("Not writing results to tf summary due to "
-        #                     "incomplete evaluation.")
-        #     elif mode not in ['infer_fit', 'infer_segment_fit']:
-        #         sw.add_summary(
-        #             sess.run(test_summary, feed_dict=feed_results),
-        #             initial_step)
-        #     if not args['no_output']:
-        #         LOGGER.info("Wrote index at `%s`.", index_fp)
-        # elif mode in ['train', 'trainval']:
-        #     # Training.
-        #     last_summary_written = time.time()
-        #     shutdown_requested = [False]  # Needs to be mutable to access.
-        #
-        #     # Register signal handler to save on Ctrl-C.
-        #     def SIGINT_handler(signal, frame):  # noqa: E306
-        #         LOGGER.warn("Received SIGINT. Saving model...")
-        #         saver.save(
-        #             sess,
-        #             os.path.join(exp_log_fp, "model"),
-        #             global_step=global_step)
-        #         shutdown_requested[0] = True
-        #
-        #     signal.signal(signal.SIGINT, SIGINT_handler)
-        #     # TODO: compute this properly
-        #     pbar = tqdm.tqdm(
-        #         total=(max_steps - initial_step) * exp_config["batch_size"])
-        #     paths = np.array([], dtype=object)
-        #     step = initial_step
-        #     preprocessor.initialise_iterator(
-        #         sess, shuffle=True
-        #     )  # (step > 0)) # TODO: fast-forward depending of the step
-        #     while step < max_steps:
-        #         try:
-        #             if (False and (step == 0 or step == 10)):
-        #                 # Save directly at first iteration to make sure this is
-        #                 # working.
-        #                 LOGGER.info("Saving model...")
-        #                 saver.save(
-        #                     sess,
-        #                     os.path.join(exp_log_fp, "model"),
-        #                     global_step=global_step)
-        #
-        #             def should(freq, epochs=False):
-        #                 if epochs:
-        #                     return freq > 0 and (
-        #                             (epoch + 1) % freq == 0 and
-        #                             (step + 1) % steps_per_epoch == 0
-        #                             or step == max_steps - 1)
-        #                 else:
-        #                     return freq > 0 and ((step + 1) % freq == 0
-        #                                          or step == max_steps - 1)
-        #
-        #             options = None
-        #             run_metadata = None
-        #             if should(exp_config["trace_freq"]):
-        #                 options = tf.RunOptions(
-        #                     trace_level=tf.RunOptions.FULL_TRACE)
-        #                 run_metadata = tf.RunMetadata()
-        #             # Setup fetches.
-        #             fetches = {
-        #                 "train": train_op,
-        #                 "global_step": global_step,
-        #                 "paths": examples.path,
-        #                 # "dbg_outputs": model.dbg_outputs,
-        #             }
-        #             if ((time.time() - last_summary_written) >
-        #                     exp_config["summary_freq"]):
-        #                 fetches["summary"] = summary_op
-        #             if (should(exp_config["display_freq"], epochs=True)
-        #                     or should(exp_config["save_freq"], epochs=True)
-        #                     or step == max_steps - 1):
-        #                 fetches["display"] = display_fetches
-        #             # Run!
-        #             results = sess.run(
-        #                 fetches, options=options, run_metadata=run_metadata)
-        #             # Write.
-        #             batch_size = len(results['paths'])
-        #             if (should(exp_config["save_freq"], epochs=True)
-        #                     or results["global_step"] == 1
-        #                     or step == max_steps - 1):
-        #                 # Save directly at first iteration to make sure this is
-        #                 # working.
-        #                 LOGGER.info("Saving model...")
-        #                 saver.save(
-        #                     sess,
-        #                     os.path.join(exp_log_fp, "model"),
-        #                     global_step=global_step)
-        #             if "summary" in results.keys():
-        #                 sw.add_summary(results["summary"],
-        #                                results["global_step"])
-        #                 last_summary_written = time.time()
-        #             if "display" in results.keys():
-        #                 LOGGER.info("saving display images")
-        #                 out_mod.save_images(
-        #                     results["display"],
-        #                     image_dir,
-        #                     mode,
-        #                     exp_config,
-        #                     latent_mean,
-        #                     step=results["global_step"])  # [0])
-        #             if should(exp_config["trace_freq"]):
-        #                 LOGGER.info("recording trace")
-        #                 sw.add_run_metadata(run_metadata,
-        #                                     "step_%d" % results["global_step"])
-        #                 trace = timeline.Timeline(
-        #                     step_stats=run_metadata.step_stats)
-        #                 with open(os.path.join(exp_log_fp, "timeline.json"),
-        #                           "w") as trace_file:
-        #                     trace_file.write(
-        #                         trace.generate_chrome_trace_format())
-        #                 # Enter 'chrome://tracing' in chrome to open the file.
-        #             epoch = results["global_step"] // steps_per_epoch
-        #             pbar.update(batch_size)
-        #             step += 1
-        #             if shutdown_requested[0]:
-        #                 break
-        #         except tf.errors.OutOfRangeError:
-        #             LOGGER.info("Epoch completed...")
-        #             preprocessor.initialise_iterator(sess, shuffle=True)
-        #             # preprocessor.enable_data_augmentation()
-        #             continue
+                i += 1
             pbar.close()
+            fname_per_frame = np.concatenate(fname_per_frame, axis=0)
+            pose_per_frame = np.stack(pose_per_frame, axis=0)
+            shape_per_frame = np.stack(shape_per_frame, axis=0)
+            print(fname_per_frame.shape)
+            print(pose_per_frame.shape)
+            print(shape_per_frame.shape)
+
+            np.save(os.path.join(output_fp, 'fname_per_frame.npy'), fname_per_frame)
+            np.save(os.path.join(output_fp, 'pose_per_frame.npy'), pose_per_frame)
+            np.save(os.path.join(output_fp, 'shape_per_frame.npy'), shape_per_frame)
+
         LOGGER.info("Shutting down...")
     LOGGER.info("Done.")
 
