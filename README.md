@@ -3,7 +3,7 @@
 ![example_output](/demo/up/examples.png)
 
 ## Setup:
-* `git clone --recursive http://github.com/mohomran/neural_body_fitting`
+* `git clone --recursive http://github.com/akashsengupta1997/neural_body_fitting`
 * create and activate a fresh virtualenv
 * `pip install tensorflow-gpu==1.6.0` (or `tensorflow==1.6.0`)
 * inside the root folder run `pip install -r requirements.txt`
