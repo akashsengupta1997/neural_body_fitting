@@ -450,6 +450,7 @@ def cli(**args):
             fname_per_frame = []
             pose_per_frame = []
             shape_per_frame = []
+            intermediate_rep_per_frame = []
             pbar = tqdm.tqdm(total=nsamples)
             kintree = None
             if exp_config['use_absrot']:
@@ -462,6 +463,7 @@ def cli(**args):
                     # results is dict with keys: paths, latent, intermediate_rep, joints3d_pred, input, joints2d_pred
                     # paths: (bsize, ) - file name for input images in batch
                     # latent: (bs, 226) - SMPL parameters - 24 3x3 rotation matrices and 10 shape parameters
+                    # intermediate_rep: (bs, 224, 224, 3)
                     # Where are camera parameters? NBF assumes fixed camera - not predicted by network
                     # cam_R = I and cam_t = [-1.00e-02  1.15e-01  2.03e+01]
                     # print results['paths']
@@ -470,6 +472,8 @@ def cli(**args):
                     # print results['latent'].shape
                     # print '\n\n'
                     fname_per_frame.append(results['paths'])
+                    intermediate_rep_per_frame.append(results['intermediate_rep'])
+
                     for idx in range(len(results['paths'])):
                         out_params = get_body_dict(results['latent'][idx],
                                                    None,
@@ -488,13 +492,16 @@ def cli(**args):
                     break
             pbar.close()
             fname_per_frame = np.concatenate(fname_per_frame, axis=0)
+            intermediate_rep_per_frame = np.concatenate(intermediate_rep_per_frame, axis=0)
             pose_per_frame = np.stack(pose_per_frame, axis=0)
             shape_per_frame = np.stack(shape_per_frame, axis=0)
             print(fname_per_frame.shape)
+            print(intermediate_rep_per_frame.shape)
             print(pose_per_frame.shape)
             print(shape_per_frame.shape)
 
             np.save(os.path.join(output_fp, 'fname_per_frame.npy'), fname_per_frame)
+            np.save(os.path.join(output_fp, 'intermediate_rep_per_frame.npy'), intermediate_rep_per_frame)
             np.save(os.path.join(output_fp, 'pose_per_frame.npy'), pose_per_frame)
             np.save(os.path.join(output_fp, 'shape_per_frame.npy'), shape_per_frame)
 
