@@ -249,7 +249,7 @@ def cli(**args):
         '_exp_preprocessor', os.path.join(exp_name, 'preprocessor.py'))
     preprocessor = exp_preproc_mod.Preprocessor(exp_config, mode,
                                                 latent_mean, latent_std,
-                                                load_files_from_npz=True)
+                                                load_files_from_npz=False)
     examples = preprocessor.get_batching_op()
     nsamples = preprocessor.get_num_samples()
     steps_per_epoch = int(math.ceil(1.0 * nsamples / exp_config['batch_size']))
